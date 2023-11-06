@@ -48,6 +48,7 @@ public:
 UCLASS(hidecategories = (Object, LOD), meta = (BlueprintSpawnableComponent), ClassGroup = Rendering)
 class DEFORMMESH_API UDeformMeshComponent : public UMeshComponent
 {
+	GENERATED_BODY()
 public:
 	//~ Begin UPrimitiveComponent Interface.
 	/* PrimitiveComponents are SceneComponents that contain or generate some sort of geometry, generally to be rendered or used as collision data. (UE4 docs)
