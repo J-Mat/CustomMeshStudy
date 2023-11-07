@@ -10,6 +10,8 @@
 #include "StaticMeshResources.h"
 #include "MeshMaterialShader.h"
 
+class FDeformMeshSceneProxy;
+
 class FDeformMeshVertexFactory : public FLocalVertexFactory
 {
 	DECLARE_VERTEX_FACTORY_TYPE(FDeformMeshVertexFactory);
@@ -25,6 +27,11 @@ public:
 	* That's because the default material is the fallback for all other materials, so it needs to be compiled for all vertex factories
 	*/
 	static bool ShouldCompilePermutation(const FVertexFactoryShaderPermutationParameters& Parameters);
+	
+	/* Modify compilation environment so we can control which parts of the shader file are taken in consideration by the shader compiler */
+	/* This is the equivaalent to manually setting preprocessor directives, so when compilation happens, only the code that we're interested in gets in the compiled shader*/
+	/* Check LocalVertexFactory.ush */
+	static void ModifyCompilationEnvironment(const FVertexFactoryShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment);
 
 	/* This is the main method that we're interested in*/
 	/* Here we can initialize our RHI resources, so we can decide what would be in the final streams and the vertex declaration*/
@@ -33,6 +40,29 @@ public:
 	virtual void InitRHI() override;
 
 
+	/* No need to override the ReleaseRHI() method, since we're not crearting any additional resources*/
+	/* The base FVertexFactory::ReleaseRHI() will empty the 3 vertex streams and release the 3 vertex declarations (Probably just decrement the ref count since a declaration is cached and can be used by multiple vertex factories)*/
+
 	void SetTransformIndex(uint16 Index) { TransformIndex = Index; }
 	void SetSceneProxy(FDeformMeshSceneProxy* Proxy) { SceneProxy = Proxy; }
+
+private:
+	//We need to pass this as a shader parameter, so we store it in the vertex factory and we use in the vertex factory shader parameters
+	uint16 TransformIndex;
+	//All the mesh sections proxies keep a pointer to the scene proxy of the component so they can access the unified SRV
+	FDeformMeshSceneProxy* SceneProxy;
+
+	friend class FDeformMeshVertexFactoryShaderParameters;
 };
+
+///////////////////////////////////////////////////////////////////////
+// The DeformMesh Vertex factory shader parameters
+/*
+ * We can bind shader parameters here
+ * There's two types of shader parameters: FShaderPrameter and FShaderResourcePramater
+ * We can use the first to pass parameters like floats, integers, arrays
+ * We can use the second to pass shader resources bindings, for example Structured Buffer, texture, samplerstate, etc
+ * Actually that's how manual fetch is implmented; for each of the Vertex Buffers of the stream components, an SRV is created
+ * That SRV can bound as a shader resource parameter and you can fetch the buffers using the SV_VertexID
+*/
+///////////////////////////////////////////////////////////////////////
